@@ -4,22 +4,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WATCh Paediatric Emergency Calculator</title>
 <style>
-body { font-family: Arial; background:#f4f6f8; margin:0; padding:20px; }
+body { font-family: Arial; background:#f4f6f8; margin:0; padding:10px; }
 .container { max-width:1000px; margin:auto; }
-h1 { text-align:center; }
-.card { background:white; padding:15px; border-radius:10px; margin-top:15px; }
-input, button { width:100%; padding:12px; margin-top:10px; font-size:16px; }
-.section { margin-top:20px; }
-.section h3 { background:#7a007a; color:white; padding:8px; border-radius:6px; }
-.row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; }
-.warning { color:red; font-weight:bold; }
+h1 { text-align:center; font-size:22px; }
+.card { background:white; padding:12px; border-radius:10px; margin-top:10px; }
+input, button { width:100%; padding:14px; margin-top:10px; font-size:18px; }
+.section { margin-top:15px; }
+.section h3 { background:#7a007a; color:white; padding:10px; border-radius:6px; font-size:16px; }
+.row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; font-size:16px; }
 .small { font-size:12px; color:#555; }
-button { background:#7a007a; color:white; border:none; border-radius:8px; }
+.warning { color:red; font-weight:bold; }
+.safe { color:green; font-weight:bold; }
+button { background:#7a007a; color:white; border:none; border-radius:10px; }
+.banner { background:#fff3cd; padding:10px; border-radius:8px; margin-top:10px; font-size:13px; }
 </style>
 </head>
 <body>
 <div class="container">
-<h1>🧒 WATCh Full Clinical Calculator</h1>
+<h1>🧒 WATCh Emergency Calculator</h1>
 
 <div class="card">
 <label>Date of Birth</label>
@@ -29,86 +31,113 @@ button { background:#7a007a; color:white; border:none; border-radius:8px; }
 <input type="number" id="weight" placeholder="Enter weight">
 
 <button onclick="generateSheet()">Generate Full Sheet</button>
+
 <div id="ageDisplay" class="small"></div>
+<div class="banner">⚠️ Always check local guidelines before administering drugs</div>
 <div id="output"></div>
 </div>
-
 </div>
 
 <script>
-
 function calculateAge() {
   const dob = document.getElementById("dob").value;
-  if (!dob) return "";
+  if (!dob) return {text:"", neonate:false};
   const birth = new Date(dob);
   const today = new Date();
+  const diffDays = Math.floor((today - birth)/(1000*60*60*24));
+
   let years = today.getFullYear() - birth.getFullYear();
   let months = today.getMonth() - birth.getMonth();
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-  return `${years}y ${months}m`;
+  if (months < 0) { years--; months += 12; }
+
+  return {
+    text: `${years}y ${months}m`,
+    neonate: diffDays < 28
+  };
 }
 
 const sections = {
-
-"Emergency Drugs": {
+"Emergency": {
 "Adrenaline": { dose:10, unit:"mcg" },
 "Atropine": { dose:20, unit:"mcg", min:100, max:600 },
 "Amiodarone": { dose:5, unit:"mg" },
-"Adenosine (1st)": { dose:100, unit:"mcg" },
-"Adenosine (2nd)": { dose:200, unit:"mcg" }
+"Adenosine 1": { dose:100, unit:"mcg" },
+"Adenosine 2": { dose:200, unit:"mcg" }
 },
 
-"Intubation Drugs": {
-"Suxamethonium": { dose:2, unit:"mg" },
+"Intubation": {
 "Fentanyl": { dose:2, unit:"mcg" },
 "Ketamine": { dose:2, unit:"mg" },
+"Suxamethonium": { dose:2, unit:"mg" },
 "Rocuronium": { dose:1, unit:"mg" }
 },
 
 "Resus": {
-"Fluid Bolus": { dose:10, unit:"ml/kg" },
-"Defibrillation": { dose:4, unit:"J/kg" }
+"Fluid": { dose:10, unit:"ml/kg" },
+"Defib": { dose:4, unit:"J/kg" }
 },
 
-"Infusions": {
-"Adrenaline Infusion": { dose:0.1, unit:"mcg/kg/min" },
-"Noradrenaline": { dose:0.1, unit:"mcg/kg/min" }
-}
+"Sedation Infusions": {
+"Midazolam": { dose:1, unit:"mcg/kg/min" },
+"Morphine": { dose:10, unit:"mcg/kg/min" },
+"Fentanyl": { dose:1, unit:"mcg/kg/min" }
+},
 
+"Cardiac Infusions": {
+"Adrenaline": { dose:0.1, unit:"mcg/kg/min" },
+"Noradrenaline": { dose:0.1, unit:"mcg/kg/min" },
+"Dopamine": { dose:5, unit:"mcg/kg/min" }
+}
 };
 
-function generateSheet() {
-const weight = parseFloat(document.getElementById("weight").value);
-if (!weight || weight <= 0) {
-alert("Enter valid weight");
-return;
+const infusionMix = {
+"Midazolam": 1000,
+"Morphine": 1000,
+"Fentanyl": 10,
+"Adrenaline": 60,
+"Noradrenaline": 80,
+"Dopamine": 4000
+};
+
+function calcStandard(w, item) {
+let total = w * item.dose;
+if (item.min && total < item.min) total = item.min;
+if (item.max && total > item.max) total = item.max;
+let unit = item.unit.includes("/kg") ? item.unit.replace("/kg","") : item.unit;
+return `${total.toFixed(1)} ${unit}`;
 }
 
-const age = calculateAge();
-if (age) {
-document.getElementById("ageDisplay").innerHTML = "Age: " + age;
-} else {
-document.getElementById("ageDisplay").innerHTML = "";
+function calcInfusion(w, item, name) {
+let mcgMin = w * item.dose;
+let mlhr = "";
+if (infusionMix[name]) {
+mlhr = ((mcgMin * 60)/infusionMix[name]).toFixed(1);
 }
+return `${mcgMin.toFixed(1)} mcg/min${mlhr ? " | " + mlhr + " mL/hr" : ""}`;
+}
+
+function generateSheet() {
+const w = parseFloat(document.getElementById("weight").value);
+if (!w || w <= 0) return alert("Enter valid weight");
+
+const ageObj = calculateAge();
+let ageText = ageObj.text ? "Age: " + ageObj.text : "";
+if (ageObj.neonate) ageText += " ⚠️ NEONATE";
+
+document.getElementById("ageDisplay").innerHTML = ageText;
 
 let html = "";
 
 for (let section in sections) {
-html += `<div class="section"><h3>${section}</h3>`;
+html += `<div class='section'><h3>${section}</h3>`;
 
 for (let drug in sections[section]) {
 let item = sections[section][drug];
-let total = weight * item.dose;
+let result = item.unit.includes("/min") ? calcInfusion(w,item,drug) : calcStandard(w,item);
 
-let unit = item.unit.includes("/kg") ? item.unit.replace("/kg","") : item.unit;
-
-html += `
-<div class="row">
-<div><b>${drug}</b><br><span class="small">${item.dose} ${item.unit}</span></div>
-<div>${total.toFixed(2)} ${unit}</div>
+html += `<div class='row'>
+<div><b>${drug}</b><br><span class='small'>${item.dose} ${item.unit}</span></div>
+<div>${result}</div>
 </div>`;
 }
 
@@ -117,8 +146,6 @@ html += `</div>`;
 
 document.getElementById("output").innerHTML = html;
 }
-
 </script>
-
 </body>
 </html>
