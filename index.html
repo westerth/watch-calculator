@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WATCh Paediatric Calculator</title>
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+      background: #f4f6f8;
+    }
+    h2 {
+      text-align: center;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    .result {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+    .warning {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🧒 WATCh Dose Calculator</h2>
+
+<label>Weight (kg)</label>
+<input type="number" id="weight" placeholder="Enter weight">
+
+<label>Select Drug</label>
+<select id="drug">
+
+  <optgroup label="Emergency Drugs">
+    <option value="adrenaline">Adrenaline (10 mcg/kg)</option>
+    <option value="atropine">Atropine (20 mcg/kg)</option>
+    <option value="lidocaine">Lidocaine (1 mg/kg)</option>
+    <option value="naloxone">Naloxone (10 mcg/kg)</option>
+  </optgroup>
+
+  <optgroup label="Bolus Drugs">
+    <option value="ceftriaxone">Ceftriaxone (80 mg/kg)</option>
+    <option value="levetiracetam">Levetiracetam (40 mg/kg)</option>
+    <option value="phenobarbital">Phenobarbital (20 mg/kg)</option>
+  </optgroup>
+
+  <optgroup label="Intubation Drugs">
+    <option value="fentanyl">Fentanyl (2 mcg/kg)</option>
+    <option value="ketamine">Ketamine (2 mg/kg)</option>
+    <option value="rocuronium">Rocuronium (1 mg/kg)</option>
+  </optgroup>
+
+</select>
+
+<button onclick="calculate()">Calculate</button>
+
+<div class="result" id="output"></div>
+
+<script>
+const drugs = {
+
+  adrenaline: { dose: 10, unit: "mcg", max: null, notes: "1:10,000 IV" },
+  atropine: { dose: 20, unit: "mcg", max: 600, notes: "Min 100 mcg" },
+  lidocaine: { dose: 1, unit: "mg", max: null },
+  naloxone: { dose: 10, unit: "mcg", max: null },
+
+  ceftriaxone: { dose: 80, unit: "mg", max: 2000 },
+  levetiracetam: { dose: 40, unit: "mg", max: null },
+  phenobarbital: { dose: 20, unit: "mg", max: null },
+
+  fentanyl: { dose: 2, unit: "mcg", max: null },
+  ketamine: { dose: 2, unit: "mg", max: null },
+  rocuronium: { dose: 1, unit: "mg", max: null }
+
+};
+
+function calculate() {
+  const weight = parseFloat(document.getElementById("weight").value);
+  const drugKey = document.getElementById("drug").value;
+  const drug = drugs[drugKey];
+
+  if (!weight || weight <= 0) {
+    alert("Please enter a valid weight");
+    return;
+  }
+
+  let total = weight * drug.dose;
+  let warning = "";
+
+  if (drug.max && total > drug.max) {
+    total = drug.max;
+    warning = "⚠ Max dose reached";
+  }
+
+  document.getElementById("output").innerHTML = `
+    <b>Dose per kg:</b> ${drug.dose} ${drug.unit}/kg<br>
+    <b>Total dose:</b> ${total} ${drug.unit}<br>
+    ${drug.notes ? `<b>Notes:</b> ${drug.notes}<br>` : ""}
+    <span class="warning">${warning}</span>
+  `;
+}
+</script>
+
+</body>
+</html>
