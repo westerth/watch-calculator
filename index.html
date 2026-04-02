@@ -33,6 +33,9 @@ button { background:#7a007a; color:white; border:none; border-radius:8px; }
 <script>
 
 const concentrations = {
+"Suxamethonium": 50,
+"Midazolam": 1,
+"Morphine": 1,
 "Adrenaline": 100, // mcg per mL (1:10,000)
 "Atropine": 600, // mcg per mL
 "Fentanyl": 50, // mcg per mL
@@ -44,6 +47,12 @@ const concentrations = {
 };
 
 const sections = {
+
+"Sedation & Paralysis": {
+"Suxamethonium": { dose:2, unit:"mg", notes:"Rapid sequence intubation" },
+"Midazolam": { dose:0.1, unit:"mg" },
+"Morphine": { dose:0.1, unit:"mg" }
+},
 
 "Emergency Drugs": {
 "Adrenaline": { dose:10, unit:"mcg", notes:"1:10,000 IV" },
@@ -79,6 +88,8 @@ const sections = {
 },
 
 "Infusions (mcg/kg/min)": {
+"Midazolam Infusion": { dose:1, unit:"mcg/kg/min" },
+"Morphine Infusion": { dose:10, unit:"mcg/kg/min" },
 "Adrenaline Infusion": { dose:0.1, unit:"mcg/kg/min" },
 "Noradrenaline": { dose:0.1, unit:"mcg/kg/min" },
 "Dopamine": { dose:5, unit:"mcg/kg/min" },
