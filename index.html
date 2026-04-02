@@ -33,6 +33,33 @@ button { background:#7a007a; color:white; border:none; border-radius:8px; }
 <script>
 
 const concentrations = {
+// Bolus concentrations (per mL)
+"Suxamethonium": 50,
+"Midazolam": 1,
+"Morphine": 1,
+"Adrenaline": 100,
+"Atropine": 600,
+"Fentanyl": 50,
+"Ketamine": 10,
+"Rocuronium": 10,
+"Ceftriaxone": 100,
+"Levetiracetam": 100,
+"Phenobarbital": 200
+};
+
+// Standard infusion mixes (amount in mg or mcg per total volume mL)
+const infusionMixes = {
+"Midazolam Infusion": { amount:50, unit:"mg", volume:50 },
+"Morphine Infusion": { amount:50, unit:"mg", volume:50 },
+"Fentanyl Infusion": { amount:500, unit:"mcg", volume:50 },
+"Thiopentone Infusion": { amount:500, unit:"mg", volume:50 },
+"Adrenaline": { amount:3, unit:"mg", volume:50 },
+"Noradrenaline": { amount:4, unit:"mg", volume:50 },
+"Dopamine": { amount:200, unit:"mg", volume:50 },
+"Dobutamine": { amount:250, unit:"mg", volume:50 },
+"Rocuronium Infusion": { amount:50, unit:"mg", volume:50 },
+"Atracurium Infusion": { amount:50, unit:"mg", volume:50 }
+};
 "Suxamethonium": 50,
 "Midazolam": 1,
 "Morphine": 1,
@@ -141,9 +168,32 @@ ml = (total / concentrations[name]).toFixed(2);
 return { total, unit, warning, ml };
 }
 
-function calcInfusion(weight, item) {
-let rate = weight * item.dose;
-return rate.toFixed(2);
+function calcInfusion(weight, item, name) {
+let ratePerMin = weight * item.dose; // mcg/min or mg/kg/hr handled below
+let mlhr = "";
+
+if (infusionMixes[name]) {
+let mix = infusionMixes[name];
+
+// Convert everything to mcg/min internally if needed
+let totalPerMin = ratePerMin;
+
+if (item.unit.includes("mg/kg/hr")) {
+// convert mg/kg/hr → mg/hr
+let mgPerHr = weight * item.dose;
+let mgPerMl = mix.amount / mix.volume;
+mlhr = (mgPerHr / mgPerMl).toFixed(2);
+return { rate: mgPerHr.toFixed(2) + " mg/hr", mlhr };
+}
+
+// mcg/kg/min case
+let mcgPerMl = (mix.unit === "mg") ? (mix.amount * 1000) / mix.volume : mix.amount / mix.volume;
+mlhr = ((totalPerMin * 60) / mcgPerMl).toFixed(2);
+
+return { rate: totalPerMin.toFixed(2) + " mcg/min", mlhr };
+}
+
+return { rate: ratePerMin.toFixed(2), mlhr: "" };
 }
 
 function generateSheet() {
@@ -159,11 +209,14 @@ for (let drug in sections[section]) {
 let item = sections[section][drug];
 
 if (section.includes("Infusion")) {
-let rate = calcInfusion(weight, item);
+let result = calcInfusion(weight, item, drug);
 html += `
 <div class="row">
 <div><b>${drug}</b><br><span class="small">${item.dose} ${item.unit}</span></div>
-<div>${rate} mcg/min</div>
+<div>
+${result.rate}<br>
+${result.mlhr ? result.mlhr + " mL/hr" : ""}
+</div>
 </div>`;
 continue;
 }
@@ -194,5 +247,3 @@ document.getElementById("output").innerHTML = html;
 
 </body>
 </html>
-
-
