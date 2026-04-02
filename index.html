@@ -22,9 +22,13 @@ button { background:#7a007a; color:white; border:none; border-radius:8px; }
 <h1>🧒 WATCh Full Clinical Calculator</h1>
 
 <div class="card">
+<label>Date of Birth</label>
+<input type="date" id="dob">
+
 <label>Weight (kg)</label>
 <input type="number" id="weight" placeholder="Enter weight">
 <button onclick="generateSheet()">Generate Full Sheet</button>
+<div id="ageDisplay" class="small"></div>
 <div id="output"></div>
 </div>
 
@@ -196,11 +200,32 @@ return { rate: totalPerMin.toFixed(2) + " mcg/min", mlhr };
 return { rate: ratePerMin.toFixed(2), mlhr: "" };
 }
 
+function calculateAge() {
+  const dob = document.getElementById("dob").value;
+  if (!dob) return "";
+  const birth = new Date(dob);
+  const today = new Date();
+  let years = today.getFullYear() - birth.getFullYear();
+  let months = today.getMonth() - birth.getMonth();
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  return `${years}y ${months}m`;
+}
+
 function generateSheet() {
 const weight = parseFloat(document.getElementById("weight").value);
 if (!weight) return alert("Enter weight");
 
 let html = "";
+
+const age = calculateAge();
+if (age) {
+  document.getElementById("ageDisplay").innerHTML = "Age: " + age;
+} else {
+  document.getElementById("ageDisplay").innerHTML = "";
+}
 
 for (let section in sections) {
 html += `<div class="section"><h3>${section}</h3>`;
