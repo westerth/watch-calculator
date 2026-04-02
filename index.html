@@ -27,6 +27,7 @@ button { background:#7a007a; color:white; border:none; border-radius:8px; }
 
 <label>Weight (kg)</label>
 <input type="number" id="weight" placeholder="Enter weight">
+
 <button onclick="generateSheet()">Generate Full Sheet</button>
 <div id="ageDisplay" class="small"></div>
 <div id="output"></div>
@@ -35,170 +36,6 @@ button { background:#7a007a; color:white; border:none; border-radius:8px; }
 </div>
 
 <script>
-
-const concentrations = {
-// Bolus concentrations (per mL)
-"Suxamethonium": 50,
-"Midazolam": 1,
-"Morphine": 1,
-"Adrenaline": 100,
-"Atropine": 600,
-"Fentanyl": 50,
-"Ketamine": 10,
-"Rocuronium": 10,
-"Ceftriaxone": 100,
-"Levetiracetam": 100,
-"Phenobarbital": 200
-};
-
-// Standard infusion mixes (amount in mg or mcg per total volume mL)
-const infusionMixes = {
-"Midazolam Infusion": { amount:50, unit:"mg", volume:50 },
-"Morphine Infusion": { amount:50, unit:"mg", volume:50 },
-"Fentanyl Infusion": { amount:500, unit:"mcg", volume:50 },
-"Thiopentone Infusion": { amount:500, unit:"mg", volume:50 },
-"Adrenaline": { amount:3, unit:"mg", volume:50 },
-"Noradrenaline": { amount:4, unit:"mg", volume:50 },
-"Dopamine": { amount:200, unit:"mg", volume:50 },
-"Dobutamine": { amount:250, unit:"mg", volume:50 },
-"Rocuronium Infusion": { amount:50, unit:"mg", volume:50 },
-"Atracurium Infusion": { amount:50, unit:"mg", volume:50 }
-};
-"Suxamethonium": 50,
-"Midazolam": 1,
-"Morphine": 1,
-"Adrenaline": 100, // mcg per mL (1:10,000)
-"Atropine": 600, // mcg per mL
-"Fentanyl": 50, // mcg per mL
-"Ketamine": 10, // mg per mL
-"Rocuronium": 10, // mg per mL
-"Ceftriaxone": 100, // mg per mL assumed
-"Levetiracetam": 100, // mg per mL
-"Phenobarbital": 200 // mg per mL
-};
-
-const sections = {
-
-"Sedation & Paralysis": {
-"Midazolam": { dose:0.1, unit:"mg" },
-"Morphine": { dose:0.1, unit:"mg" }
-},
-"Midazolam": { dose:0.1, unit:"mg" },
-"Morphine": { dose:0.1, unit:"mg" }
-},
-
-"Emergency Drugs": {
-"Adrenaline": { dose:10, unit:"mcg", notes:"1:10,000 IV" },
-"Atropine": { dose:20, unit:"mcg", min:100, max:600 },
-"Amiodarone": { dose:5, unit:"mg", notes:"Arrest only" },
-"Adenosine (1st)": { dose:100, unit:"mcg" },
-"Adenosine (2nd)": { dose:200, unit:"mcg" },
-"Lidocaine": { dose:1, unit:"mg" },
-"Naloxone": { dose:10, unit:"mcg" },
-"Tranexamic Acid": { dose:15, unit:"mg" },
-"Calcium Gluconate": { dose:0.5, unit:"ml", notes:"10% solution" },
-"Sodium Bicarbonate": { dose:1, unit:"mmol" }
-},
-
-"Bolus Drugs": {
-"Ceftriaxone": { dose:80, unit:"mg", max:2000 },
-"Levetiracetam": { dose:40, unit:"mg" },
-"Phenobarbital": { dose:20, unit:"mg" },
-"Magnesium Sulphate": { dose:0.2, unit:"ml", notes:"50%" }
-},
-
-"Intubation Drugs": {
-"Suxamethonium": { dose:2, unit:"mg", notes:"RSI" },
-"Fentanyl": { dose:2, unit:"mcg" },
-"Ketamine": { dose:2, unit:"mg" },
-"Rocuronium": { dose:1, unit:"mg" },
-"Propofol": { dose:2.5, unit:"mg" }
-},
-
-"Resus": {
-"Fluid Bolus": { dose:10, unit:"ml/kg" },
-"Defibrillation": { dose:4, unit:"J/kg" },
-"Glucose 10%": { dose:3, unit:"ml/kg" }
-},
-
-"Sedation Infusions": {
-"Midazolam Infusion": { dose:1, unit:"mcg/kg/min" },
-"Morphine Infusion": { dose:10, unit:"mcg/kg/min" },
-"Fentanyl Infusion": { dose:1, unit:"mcg/kg/min" },
-"Thiopentone Infusion": { dose:3, unit:"mg/kg/hr" }
-},
-
-"Cardiac Infusions": {
-"Adrenaline": { dose:0.1, unit:"mcg/kg/min" },
-"Noradrenaline": { dose:0.1, unit:"mcg/kg/min" },
-"Dopamine": { dose:5, unit:"mcg/kg/min" },
-"Dobutamine": { dose:5, unit:"mcg/kg/min" }
-},
-
-"Neuromuscular Infusions": {
-"Rocuronium Infusion": { dose:10, unit:"mcg/kg/min" },
-"Atracurium Infusion": { dose:5, unit:"mcg/kg/min" }
-},
-"Morphine Infusion": { dose:10, unit:"mcg/kg/min" },
-"Adrenaline Infusion": { dose:0.1, unit:"mcg/kg/min" },
-"Noradrenaline": { dose:0.1, unit:"mcg/kg/min" },
-"Dopamine": { dose:5, unit:"mcg/kg/min" },
-"Dobutamine": { dose:5, unit:"mcg/kg/min" }
-}
-
-};
-
-function calcDose(weight, item, name) {
-let total = weight * item.dose;
-let warning = "";
-
-if (item.min && total < item.min) {
-total = item.min;
-warning = "Min dose";
-}
-
-if (item.max && total > item.max) {
-total = item.max;
-warning = "Max dose";
-}
-
-let unit = item.unit.includes("/kg") ? item.unit.replace("/kg","") : item.unit;
-
-let ml = "";
-if (concentrations[name]) {
-ml = (total / concentrations[name]).toFixed(2);
-}
-
-return { total, unit, warning, ml };
-}
-
-function calcInfusion(weight, item, name) {
-let ratePerMin = weight * item.dose; // mcg/min or mg/kg/hr handled below
-let mlhr = "";
-
-if (infusionMixes[name]) {
-let mix = infusionMixes[name];
-
-// Convert everything to mcg/min internally if needed
-let totalPerMin = ratePerMin;
-
-if (item.unit.includes("mg/kg/hr")) {
-// convert mg/kg/hr → mg/hr
-let mgPerHr = weight * item.dose;
-let mgPerMl = mix.amount / mix.volume;
-mlhr = (mgPerHr / mgPerMl).toFixed(2);
-return { rate: mgPerHr.toFixed(2) + " mg/hr", mlhr };
-}
-
-// mcg/kg/min case
-let mcgPerMl = (mix.unit === "mg") ? (mix.amount * 1000) / mix.volume : mix.amount / mix.volume;
-mlhr = ((totalPerMin * 60) / mcgPerMl).toFixed(2);
-
-return { rate: totalPerMin.toFixed(2) + " mcg/min", mlhr };
-}
-
-return { rate: ratePerMin.toFixed(2), mlhr: "" };
-}
 
 function calculateAge() {
   const dob = document.getElementById("dob").value;
@@ -214,51 +51,64 @@ function calculateAge() {
   return `${years}y ${months}m`;
 }
 
+const sections = {
+
+"Emergency Drugs": {
+"Adrenaline": { dose:10, unit:"mcg" },
+"Atropine": { dose:20, unit:"mcg", min:100, max:600 },
+"Amiodarone": { dose:5, unit:"mg" },
+"Adenosine (1st)": { dose:100, unit:"mcg" },
+"Adenosine (2nd)": { dose:200, unit:"mcg" }
+},
+
+"Intubation Drugs": {
+"Suxamethonium": { dose:2, unit:"mg" },
+"Fentanyl": { dose:2, unit:"mcg" },
+"Ketamine": { dose:2, unit:"mg" },
+"Rocuronium": { dose:1, unit:"mg" }
+},
+
+"Resus": {
+"Fluid Bolus": { dose:10, unit:"ml/kg" },
+"Defibrillation": { dose:4, unit:"J/kg" }
+},
+
+"Infusions": {
+"Adrenaline Infusion": { dose:0.1, unit:"mcg/kg/min" },
+"Noradrenaline": { dose:0.1, unit:"mcg/kg/min" }
+}
+
+};
+
 function generateSheet() {
 const weight = parseFloat(document.getElementById("weight").value);
-if (!weight) return alert("Enter weight");
-
-let html = "";
+if (!weight || weight <= 0) {
+alert("Enter valid weight");
+return;
+}
 
 const age = calculateAge();
 if (age) {
-  document.getElementById("ageDisplay").innerHTML = "Age: " + age;
+document.getElementById("ageDisplay").innerHTML = "Age: " + age;
 } else {
-  document.getElementById("ageDisplay").innerHTML = "";
+document.getElementById("ageDisplay").innerHTML = "";
 }
+
+let html = "";
 
 for (let section in sections) {
 html += `<div class="section"><h3>${section}</h3>`;
 
 for (let drug in sections[section]) {
 let item = sections[section][drug];
+let total = weight * item.dose;
 
-if (section.includes("Infusion")) {
-let result = calcInfusion(weight, item, drug);
+let unit = item.unit.includes("/kg") ? item.unit.replace("/kg","") : item.unit;
+
 html += `
 <div class="row">
 <div><b>${drug}</b><br><span class="small">${item.dose} ${item.unit}</span></div>
-<div>
-${result.rate}<br>
-${result.mlhr ? result.mlhr + " mL/hr" : ""}
-</div>
-</div>`;
-continue;
-}
-
-let result = calcDose(weight, item, drug);
-
-html += `
-<div class="row">
-<div>
-<b>${drug}</b><br>
-<span class="small">${item.dose} ${item.unit}${item.notes ? " - " + item.notes : ""}</span>
-</div>
-<div>
-${result.total} ${result.unit}
-${result.ml ? `<br>${result.ml} mL` : ""}
-<br><span class="warning">${result.warning}</span>
-</div>
+<div>${total.toFixed(2)} ${unit}</div>
 </div>`;
 }
 
